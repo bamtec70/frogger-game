@@ -15,12 +15,13 @@ const COL = {
   k: rgb("#000000"), blu: rgb("#0000ff"), mag: rgb("#de00ff"), red: rgb("#ff0000"),
   grn: rgb("#68f700"), org: rgb("#ffa300"), cyn: rgb("#00f7ff"), yel: rgb("#ffff00"),
   wht: rgb("#f7f7ff"), pnk: rgb("#ffa3ff"), pur: rgb("#ff00ff"), dgr: rgb("#2a8a00"),
-  brn: rgb("#c27a28"), pnk2: rgb("#ff7ad8"), sky: rgb("#3c3cff"), navy: rgb("#000047")
+  brn: rgb("#c27a28"), pnk2: rgb("#ff7ad8"), sky: rgb("#3c3cff"), navy: rgb("#000047"), log: rgb("#c35b45"), logHi: rgb("#e08a62"), bush: rgb("#1dc300")
 };
 
 /* row tops, 16 px bands */
-const Y_SCORE = 0, Y_HOME = 16, Y_RIV = [32, 48, 64, 80, 96], Y_MED = 112;
-const Y_ROAD = [128, 144, 160, 176, 192], Y_WALK = 208, Y_STAT = 224;
+const Y_SCORE = 0, Y_HOME = 16, Y_BUSH = 24, Y_LAND = 32;
+const Y_RIV = [48, 64, 80, 96, 112], Y_MED = 128;
+const Y_ROAD = [144, 160, 176, 192, 208], Y_WALK = 224, Y_STAT = 240;
 const BAY_X = [8, 56, 104, 152, 200]; /* 16 px bays, 48 px centers, measured from MAME */
 
 function cls(c) { fb.fill(c); }
@@ -56,9 +57,9 @@ const SPR = {
   carP: pack(`
 ................ ..pppppppppp.... .pppppppppppp... ppwwppppppwwpp. pppppppppppppp. pppppppppppppp. ..pp......pp... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
   dozer: pack(`
-................ wwwww.yyyyyyyy.. wwwwwyyyyyyyyy. wwwyyyyyyyyyyyy yyyyyyyyyyyyyy. yyyyyyyyyyyyyy. ..yy......yy... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ wwwww.oooooooo.. wwwwwooooooooo. wwwoooooooooooo oooooooooooooo. oooooooooooooo. ..oo......oo... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
   racer: pack(`
-................ ....wwwwrrrr.... ...wwwwwwrrrr... wwrrwwwwwwrrww. rrrrrrrrrrrrrr. rrrrrrrrrrrrrr. ..rr......rr... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ..wwwwwwwwww.... .wwwwwwwwwwww... wwkkwwwwwwkkww. wwwwwwwwwwwwww. wwrwwwwwwwrrww. ..ww......ww... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
   truck: pack(`
 ................................
 ccccccccccccccccccccwwww........
@@ -88,20 +89,26 @@ ccccccccccccccccccccrrrr........
 ................ ................ ......gg...... ....ggddgg.... ...gddddddg... ..ggddddddgg.. ...ggddddgg... ....gggggg.... .....g..g..... ................ ................ ................ ................ ................ ................ ................`),
   turtDown: pack(`
 ................ ................ ................ ................ ......dd...... .....dddd..... ......dd...... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+  turtR: pack(`
+................ ......rr...... ....rrddrr.... ...rddddddr... ..rrddddddrr.. .rrrddddddrrr. rrrddddddddrrr .rrrddddddrrr. ..rrrddrrrr... ...rrrrrrr.... ....r..r..... ...r....r.... ................ ................ ................ ................`),
+  turtRDive: pack(`
+................ ................ ......rr...... ....rrddrr.... ...rddddddr... ..rrddddddrr.. ...rrddddrr... ....rrrrrr.... .....r..r..... ................ ................ ................ ................ ................ ................ ................`),
+  turtRDown: pack(`
+................ ................ ................ ................ ......dd...... .....dddd..... ......dd...... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   croc: pack(`
 ................ ....ggggggggggg. ...ggdddddddddg gggggdddddddddg ggggyyddddddggg ...ggdddddddddg ....ggggggggg.. .....g.....g... ................ ................ ................ ................ ................ ................ ................ ................`),
   crocJaw: pack(`
 ................ gg.............. gggg............ ggyyggggggggggg. gggggdddddddddg ggggddddddddddg .ggggggggggggg. ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   snake: pack(`
-................ ................ ..yy..yyyy..yy.. yyyyyyyyyyyyyy. .yy.yyyyyy.yy.. ................ ................ ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ..uu....uu...... uuuuuuuuuuuu.... uuyyuuyyuuyyuu.. .uuyyyyyyyyyu... ..uuuuuuuuu.... ................ ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   otter: pack(`
-................ ....nnnn...... ...nnwwnn..... ..nnnnnnnn.... .nnnnnnnnnn... nnnnnnnnnnnn.. nnnn....nnnn.. .nn......nn... ..n......n.... ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ...nnnnnnn.... ..nnwwwnnnn... .nnnnnnnnnnn.. nnnnnnnnnnnnn. .nnn....nnn... ..n......n.... ................ ................ ................ ................ ................ ................ ................ ................`),
   fly: pack(`
 ..y..y.. .yyyyyy. yyyyyyyy ..yyyy.. ...yy... ...yy... ........ ........`),
   homeFrog: pack(`
 ................ ....gggg.... ...gggggg... ..ggyygggg.. .ggggggggg.. ..gggggggg.. ...gg..gg... ..g......g.. ................ ................ ................ ................ ................ ................ ................ ................`),
   bush: pack(`
-..g.g.g.g.g.g.g. g.gg.ggg.gg.gg.g .ggggggggggggg. ggggygggcggggg. .ggggggggggggg. ggggrgggpggggg. .ggggggggggggg. g.gg.ggg.gg.gg.g ..g.g.g.g.g.g.g. .g.g...g.g...g. ................ ................ ................ ................ ................ ................`),
+.g.g.g.gg.g.g.g. gggggggggggggggg .ggdggggggdggg. gggggggggggggg. gdggggcggggggg. gggggggggggggg. ggggygggrggggg. .ggggggggggggg. gggggggggggggg. .ggdggggggdggg. ................ ................ ................ ................ ................ ................`),
   splat: pack(`
 ......g.......g. .g...ggg...g.... ..g.g...g.g..... ...g.g.g.g...... g...ggggg...g... ..g.ggggg.g..... ...gg...gg...... .g..g.g.g..g.... ....g...g....... .g.........g.... ................ ................ ................ ................ ................ ................`),
   splash: pack(`
@@ -211,40 +218,42 @@ function tickMusic() {
 
 /* Compact songs: [midi, frames] (frames at 60.6 Hz). Transcribed to sound like the arcade themes. */
 const SONGS = {
+  /* Note-accurate from the MAME WAV, F# major, 8/12-frame grid at 60.606 Hz. Square wave like the AY-3-8910. */
   start: {
     loop: false,
-    0: [[76,8],[74,8],[72,8],[74,8],[76,8],[76,8],[76,12],[74,8],[74,8],[74,12],[76,8],[79,8],[79,16]],
-    1: [[60,8],[59,8],[57,8],[59,8],[60,8],[60,8],[60,12],[59,8],[59,8],[59,12],[60,8],[64,8],[64,16]]
+    0: [[70,8],[66,24],[70,8],[66,24],[71,16],[70,16],[68,16],[71,16],[70,16],[68,16],[75,16],[73,8],[71,8],[70,8],[68,8],[66,16]],
+    1: [[58,8],[54,24],[58,8],[54,24],[59,16],[58,16],[56,16],[59,16],[58,16],[56,16],[63,16],[61,8],[59,8],[58,8],[56,8],[54,16]]
   },
   main: {
     loop: true,
     0: [
-      [72,10],[74,10],[76,10],[77,10],[79,20],[77,10],[76,10],[74,20],[76,10],[74,10],[72,20],
-      [72,10],[74,10],[76,10],[77,10],[79,10],[81,10],[79,20],[77,10],[76,10],[74,10],[72,10],[74,20],[72,20],
-      [79,10],[81,10],[83,20],[81,10],[79,10],[77,20],[76,10],[74,10],[72,20],
-      [76,10],[74,10],[72,10],[71,10],[72,40]
+      /* opening motto over the ostinato */
+      [70,8],[66,24],[70,8],[66,24],[71,16],[70,16],[68,16],[71,16],[70,16],[68,16],[75,16],[73,8],[71,8],[70,8],[68,8],[66,16],
+      [0,16],[78,16],[0,16],[78,24],[77,8],[0,24]
     ],
     1: [
-      [60,20],[64,20],[67,20],[64,20],[59,20],[62,20],[67,20],[62,20],
-      [57,20],[60,20],[64,20],[60,20],[55,20],[59,20],[62,20],[60,20],
-      [64,20],[67,20],[69,20],[67,20],[65,20],[64,20],[62,20],[60,20],
-      [64,20],[62,20],[60,20],[59,20],[60,40]
+      /* looping accompaniment transcribed from the park-median WAV: A#3 C#3 A#3 F#3, then G#/C# and B cells */
+      [58,8],[49,8],[58,12],[54,12],[58,8],[49,8],[58,12],[54,12],
+      [56,8],[61,8],[49,12],[61,12],[51,8],[61,8],[53,12],[61,12],
+      [58,8],[49,8],[58,12],[54,12],[58,8],[49,8],[58,12],[54,12],
+      [59,8],[51,8],[59,12],[54,12],[59,8],[51,8],[59,12],[54,12],
+      [56,8],[61,8],[49,12],[61,12],[56,8],[61,8],[49,12],[61,12]
     ]
   },
   home: {
     loop: false,
-    0: [[76,6],[79,6],[83,6],[88,12],[83,6],[88,18]],
-    1: [[64,6],[67,6],[71,6],[76,12],[71,6],[76,18]]
+    0: [[66,6],[68,6],[70,6],[71,6],[73,12],[70,8],[73,8],[70,6],[66,6],[78,16]],
+    1: [[54,6],[56,6],[58,6],[59,6],[61,12],[58,8],[61,8],[58,6],[54,6],[66,16]]
   },
   clear: {
     loop: false,
-    0: [[72,8],[76,8],[79,8],[84,16],[79,8],[84,8],[83,8],[81,8],[79,16],[81,8],[83,8],[84,24]],
-    1: [[60,8],[64,8],[67,8],[72,16],[67,8],[72,8],[71,8],[69,8],[67,16],[69,8],[71,8],[72,24]]
+    0: [[66,6],[68,6],[70,6],[71,6],[73,12],[70,8],[73,8],[70,6],[66,6],[78,12],[77,8],[75,6],[73,12],[78,6],[70,6],[68,6],[73,16],[66,8],[73,24],[70,6],[68,6],[66,6],[65,6],[78,20],[80,6],[78,6],[77,6],[75,12]],
+    1: [[54,6],[56,6],[58,6],[59,6],[61,12],[58,8],[61,8],[58,6],[54,6],[66,12],[65,8],[63,6],[61,12],[66,6],[58,6],[56,6],[61,16],[54,8],[61,24],[58,6],[56,6],[54,6],[53,6],[66,20],[68,6],[66,6],[65,6],[63,12]]
   },
   over: {
     loop: false,
-    0: [[76,12],[74,12],[72,12],[71,16],[72,24],[67,24]],
-    1: [[64,12],[62,12],[60,12],[59,16],[60,24],[52,24]]
+    0: [[73,12],[71,12],[70,12],[68,16],[66,24],[61,24]],
+    1: [[61,12],[59,12],[58,12],[56,16],[54,24],[49,24]]
   }
 };
 
@@ -326,25 +335,56 @@ function hopWanted() {
 /* counts: road[5] {n,w,fast?}  river[5] {n, kind, dive?}  kinds: turt, short, long, mid, croc */
 function tier(level) {
   const t = ((level - 1) % 5);
+  /* Object counts from MAME RAM lane dumps, levels 1-5. */
   const tables = [
-    /* rows are top-to-bottom to match Y_ROAD / Y_RIV */
-    { road: [[2,32],[1,16,1],[3,16],[3,16],[3,16]], river: [[3,"mid"],[4,"turt",1],[3,"long"],[3,"short"],[4,"turt",1]], crocEvery: 0, snake: 0, otter: 0, homeCroc: 0 },
-    { road: [[3,32],[2,16,1],[3,16],[4,16],[4,16]], river: [[3,"mid"],[4,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], crocEvery: 5, snake: 0, otter: 0, homeCroc: 1 },
-    { road: [[3,32],[2,16,0],[5,16],[4,16],[4,16]], river: [[2,"mid"],[4,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], crocEvery: 3, snake: 1, otter: 0, homeCroc: 1 },
-    { road: [[4,32],[3,16,1],[4,16],[4,16],[4,16]], river: [[2,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[3,"turt",1]], crocEvery: 2, snake: 1, otter: 1, homeCroc: 1 },
-    { road: [[3,32],[4,16,0],[5,16],[4,16],[5,16]], river: [[0,"croc"],[3,"turt",1],[1,"long"],[2,"short"],[2,"turt",1]], crocEvery: 1, snake: 1, otter: 1, homeCroc: 1 }
+    { road: [[2,32],[1,16],[3,16],[3,16],[3,16]], river: [[3,"mid"],[4,"turt",1],[2,"long"],[3,"short"],[4,"turt",1]], swimCroc: 0, snake: 0, otter: 0, homeCroc: 0, lady: 0 },
+    { road: [[3,32],[2,16],[4,16],[4,16],[4,16]], river: [[3,"mid"],[5,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
+    { road: [[3,32],[2,16],[5,16],[4,16],[4,16]], river: [[2,"mid"],[4,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
+    { road: [[4,32],[3,16],[4,16],[4,16],[4,16]], river: [[2,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 },
+    { road: [[3,32],[4,16],[5,16],[4,16],[5,16]], river: [[1,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[2,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 }
   ];
   return tables[t];
 }
-function speeds(level) {
-  /* Level 1 from MAME: every lane is sub-rate, 1 px every N frames.
-     Road top to bottom: trucks 1/2 L, racers 1/3 R, pink 1/4 L, dozers 1/5 R, yellow 1/6 L.
-     River top to bottom: mid 1/3 R, turt 1/2 L, long 1/1 R, short 1/6 R, turt 1/2 L.
-     Later-level control bytes were not captured; apply a light per-level boost only. */
-  const boost = 1 + (level - 1) * 0.12;
+function speeds(level, boosted) {
+  /* Per-lane rates from MAME object X over 60-frame dumps. Control 0x10|N = 1 px every N frames.
+     Level 2 mid-board swaps the whole table (not only the racers). Levels 3-5 start on later tables.
+     Level 1 racer boost (not seen before a life reset) goes 1/3 -> 1 px/frame after 30 ticks. */
+  const L = ((level - 1) % 5) + 1;
+  const L1 = {
+    road: [1/2, 1/3, 1/4, 1/5, 1/6],
+    river: [1/3, 1/2, 1, 1/6, 1/2],
+    dirRoad: [-1, 1, -1, 1, -1],
+    dirRiv:  [1, -1, 1, 1, -1]
+  };
+  if (L === 1) {
+    if (!boosted) return L1;
+    const s = { road: L1.road.slice(), river: L1.river.slice(), dirRoad: L1.dirRoad.slice(), dirRiv: L1.dirRiv.slice() };
+    s.road[1] = 1; /* racer boost */
+    return s;
+  }
+  if (L === 2 && !boosted) return L1;
+  if (L === 2 && boosted) return {
+    road: [1/3, 4/3, 1/2, 1/3, 1/2],
+    river: [1/2, 1/3, 1/2, 1/5, 3/5],
+    dirRoad: [-1, 1, -1, 1, -1],
+    dirRiv:  [1, -1, 1, 1, 1] /* bottom turtles reverse */
+  };
+  if (L === 3) return {
+    road: [1/3, 4/5, 13/30, 1/3, 1/2],
+    river: [1/2, 1/3, 1/2, 1/5, 1/5],
+    dirRoad: [-1, 1, 1, 1, -1], /* pinks run right */
+    dirRiv:  [1, -1, 1, 1, 1]
+  };
+  if (L === 4) return {
+    road: [1/3, 6/5, 1/2, 1/3, 1/2],
+    river: [1/2, 1/3, 1/2, 1/5, 1/3],
+    dirRoad: [-1, -1, -1, 1, -1], /* racers run left */
+    dirRiv:  [1, -1, 1, 1, 1]
+  };
+  /* level 5. Racer c=01 measured poorly with 4 cars; treat as 1 px/frame. */
   return {
-    road: [1/2, 1/3, 1/4, 1/5, 1/6].map(s => s * boost),
-    river: [1/3, 1/2, 1/1, 1/6, 1/2].map(s => s * boost),
+    road: [1/2, 1, 1/3, 1/2, 1/3],
+    river: [1/2, 1/2, 1/3, 1/4, 1/2],
     dirRoad: [-1, 1, -1, 1, -1],
     dirRiv:  [1, -1, 1, 1, -1]
   };
@@ -387,58 +427,48 @@ function wrapX(x, span) {
 
 function makeLaneObjects() {
   objects = [];
-  const cfg = tier(level), sp = speeds(level);
-  /* roads: index 0 = top road (trucks) at Y_ROAD[0] */
+  const cfg = tier(level), sp = speeds(level, false);
   const roadKind = ["truck", "racer", "carP", "dozer", "carY"];
   for (let i = 0; i < 5; i++) {
-    const [n, w, fast] = cfg.road[i];
+    const [n, w] = cfg.road[i];
     const dir = sp.dirRoad[i];
-    let spd = sp.road[i] * dir;
-    if (fast) spd *= 1.05;
+    const spd = sp.road[i] * dir;
     const y = Y_ROAD[i];
     const kind = roadKind[i];
     const gap = (W + 40) / n;
     for (let k = 0; k < n; k++) {
-      objects.push({ typ: "car", kind, x: k * gap - 20, y, w, h: 16, vx: spd, lane: "road" + i });
+      objects.push({ typ: "car", kind, x: k * gap - 20, y, w, h: 16, vx: spd, lane: "road" + i, laneI: i });
     }
   }
-  /* river: index 0 = top river (near homes) */
-  const rivY = Y_RIV;
   for (let i = 0; i < 5; i++) {
     const row = cfg.river[i];
     const n = row[0], kind = row[1], dive = row[2];
     const dir = sp.dirRiv[i];
     const spd = sp.river[i] * dir;
-    const y = rivY[i];
-    if (kind === "croc" || (cfg.crocEvery === 1 && i === 0 && n === 0)) {
-      const count = Math.max(n, 2);
-      const gap = (W + 50) / count;
-      for (let k = 0; k < count; k++) objects.push({ typ: "croc", x: k * gap - 10, y, w: 40, h: 16, vx: spd, jaw: true, lane: "riv" + i });
-      continue;
-    }
-    const widthFor = k => kind === "turt" ? 48 : kind === "short" ? 32 : kind === "long" ? 64 : 48;
-    const count = Math.max(n, 1);
-    const gap = (W + 60) / count;
+    const y = Y_RIV[i];
+    const widthFor = kind === "turt" ? 48 : kind === "short" ? 32 : kind === "long" ? 64 : 48;
+    const count = Math.max(n, 0);
+    const gap = (W + 60) / Math.max(count, 1);
     for (let k = 0; k < count; k++) {
-      const isCroc = (i === 0 && cfg.crocEvery && (k % cfg.crocEvery === 0));
-      if (isCroc) {
-        objects.push({ typ: "croc", x: k * gap - 10, y, w: 40, h: 16, vx: spd, jaw: true, lane: "riv" + i });
-      } else if (kind === "turt") {
-        const diving = dive && (k === count - 1 || (n > 2 && k === 0));
-        objects.push({ typ: "turt", x: k * gap - 10, y, w: 48, h: 16, vx: spd, dive: diving ? 0 : -1, lane: "riv" + i, n: 3 });
+      if (kind === "turt") {
+        const diving = !!dive && (k === count - 1 || (count > 3 && k === 0));
+        const color = (i === 1) ? "red" : "grn"; /* top turtle row is red, bottom is green */
+        objects.push({ typ: "turt", x: k * gap - 10, y, w: 48, h: 16, vx: spd, dive: diving ? (k * 40) % 240 : -1, lane: "riv" + i, laneI: i, n: 3, color });
       } else {
-        const w = widthFor(kind);
-        objects.push({ typ: "log", x: k * gap - 10, y, w, h: 16, vx: spd, lane: "riv" + i });
+        objects.push({ typ: "log", x: k * gap - 10, y, w: widthFor, h: 16, vx: spd, lane: "riv" + i, laneI: i });
       }
+    }
+    if (i === 0 && cfg.swimCroc) {
+      objects.push({ typ: "croc", x: W * 0.6, y, w: 48, h: 16, vx: spd, jaw: true, lane: "riv" + i, laneI: i });
     }
   }
   snakes = [];
   otters = [];
   if (cfg.snake) {
-    snakes.push({ x: 0, y: Y_MED, w: 32, h: 10, vx: 0.55 + level * 0.04, dir: 1 });
+    snakes.push({ x: 8, y: Y_MED + 3, w: 32, h: 10, vx: 0.5 + level * 0.04, dir: 1 });
   }
   if (cfg.otter) {
-    otters.push({ x: -20, y: Y_RIV[2], w: 16, h: 12, vx: 0.9, t: 0 });
+    otters.push({ x: -24, y: Y_RIV[2], w: 20, h: 12, vx: 0.85, t: 0 });
   }
 }
 
@@ -535,14 +565,14 @@ function otterHit(x, y) {
 
 function inRiver(y) { return y < Y_MED && y >= Y_RIV[0]; }
 function inRoad(y) { return y >= Y_ROAD[0] && y < Y_WALK; }
-function inHomeRow(y) { return y < Y_RIV[0] && y >= Y_HOME; }
+function inHomeRow(y) { return y === Y_LAND; }
 
 function beginHop(dir) {
   if (!frog.alive || hop) return;
   const dx = dir === "L" ? -HOP_PX : dir === "R" ? HOP_PX : 0;
   const dy = dir === "U" ? -HOP_PX : dir === "D" ? HOP_PX : 0;
   const nx = frog.x + dx, ny = frog.y + dy;
-  if (ny > Y_WALK || ny < Y_HOME) return;
+  if (ny > Y_WALK || ny < Y_LAND) return;
   if (nx < -2 || nx > W - 14) {
     if (!inRiver(frog.y) && !inRiver(ny)) return; /* blocked at sides on land */
   }
@@ -604,7 +634,7 @@ function checkHazards() {
     if (inRiver(y)) { die("water"); return; }
   }
   if (inRoad(y) && carHit(x, y)) { die("road"); return; }
-  if ((y === Y_MED || y === Y_WALK) && snakeHit(x, y)) { die("road"); return; }
+  if ((y === Y_MED || y === Y_WALK || (snakes.length && Math.abs(y - snakes[0].y) < 12)) && snakeHit(x, y)) { die("road"); return; }
   if (inRiver(y)) {
     if (otterHit(x, y)) { die("croc"); return; }
     const p = platformAt(x, y);
@@ -619,14 +649,22 @@ function checkHazards() {
   } else frog.onPlat = null;
 }
 
+function applyLaneSpeed(o) {
+  const sp = speeds(level, racerBoost);
+  if (o.lane && o.lane.slice(0, 4) === "road") {
+    const i = o.laneI;
+    o.vx = sp.road[i] * sp.dirRoad[i];
+  } else if (o.lane && o.lane.slice(0, 3) === "riv") {
+    const i = o.laneI;
+    o.vx = sp.river[i] * sp.dirRiv[i];
+  }
+}
 function stepObjects() {
-  const sp = speeds(level);
   for (const o of objects) {
-    let vx = o.vx;
-    if (o.kind === "racer" && racerBoost) vx *= 3 /* ~1 px per frame on level 1, unverified */;
-    o.x = wrapX(o.x + vx, o.w);
+    applyLaneSpeed(o);
+    o.x = wrapX(o.x + o.vx, o.w);
     if (o.typ === "turt" && o.dive >= 0) {
-      o.dive = (o.dive + 1) % 240;
+      o.dive = (o.dive + 1) % 256;
     }
   }
   for (const s of snakes) {
@@ -645,8 +683,8 @@ function stepObjects() {
     const host = objects.find(o => o === lady.host) || objects.find(o => o.typ === "log" && o.y === Y_RIV[3]);
     if (host) { lady.x = host.x + Math.min(12, host.w - 16); lady.y = host.y; lady.host = host; }
     else lady = null;
-  } else if (!frog.lady && (frame % 360) === 80) {
-    const logs = objects.filter(o => o.typ === "log" && o.y === Y_RIV[3]);
+  } else if (!frog.lady && tier(level).lady && (frame % 360) === 80) {
+    const logs = objects.filter(o => o.typ === "log" && (o.y === Y_RIV[3] || o.y === Y_RIV[2]));
     if (logs.length) lady = { x: logs[0].x, y: logs[0].y, host: logs[0] };
   }
 }
@@ -665,9 +703,7 @@ function stepFrog() {
     return;
   }
   if (frog.onPlat) {
-    let vx = frog.onPlat.vx;
-    if (frog.onPlat.kind === "racer" && racerBoost) vx *= 3 /* ~1 px per frame on level 1, unverified */;
-    frog.x += vx;
+    frog.x += frog.onPlat.vx;
     if (frog.x + 8 < 4 || frog.x + 8 > W - 4) { die("water"); return; }
   }
   const want = hopWanted();
@@ -789,7 +825,7 @@ function update() {
 function playTick(isDemoTick) {
   if (timeFrozen > 0) { timeFrozen--; stepObjects(); tickMusic(); return; }
   /* mid-board racer speedup after about 15 seconds */
-  if (TIME_TICKS - timeLeft >= 30) racerBoost = true; /* mid-board racer speedup; exact MAME rate not captured */
+  if (TIME_TICKS - timeLeft >= 30) racerBoost = true; /* L1 racers 1/3->1; L2 full table swap, measured */
   stepObjects();
   if (demo || isDemoTick) demoAI();
   stepFrog();
@@ -857,28 +893,35 @@ function drawBackground() {
   }
   bank(Y_MED);
   bank(Y_WALK);
-  /* continuous hedge with flower dots, then cut five bays */
-  fillR(0, Y_HOME, W, 16, COL.dgr);
-  for (let x = 0; x < W; x++) {
-    for (let y = 0; y < 16; y++) {
-      const jig = ((x * 13 + y * 7) & 7);
-      if (y === 0 || y === 15) pset(x, Y_HOME + y, COL.grn);
-      else if (jig === 0) pset(x, Y_HOME + y, COL.grn);
+  /* 24 px hedge (MAME y=24-47) with a navy strip under the score, then five bay cutouts */
+  const bushC = COL.bush || COL.grn, darkB = COL.dgr;
+  for (let y = 0; y < 24; y++) {
+    for (let x = 0; x < W; x++) {
+      const yy = Y_BUSH + y;
+      const jig = ((x * 13 + y * 7) ^ (x >> 1)) & 7;
+      const scallop = ((x + 3) % 8) < 2 && y < 2;
+      let col = jig === 0 || jig === 3 ? darkB : bushC;
+      if (y === 0 && !scallop) col = bushC;
+      if (scallop && y === 0) continue; /* leave navy in the notches */
+      if (y === 23) col = darkB;
+      pset(x, yy, col);
     }
   }
-  const fl = [[6,4,COL.cyn],[18,9,COL.yel],[46,5,COL.red],[86,8,COL.pnk],[126,4,COL.yel],[166,9,COL.cyn],[206,5,COL.red],[36,11,COL.pnk],[156,12,COL.yel]];
-  for (const f of fl) pset(f[0], Y_HOME + f[1], f[2]);
+  const fl = [[6,6,COL.cyn],[18,11,COL.yel],[46,7,COL.red],[86,10,COL.pnk],[126,6,COL.yel],[166,12,COL.cyn],[206,7,COL.red],[36,15,COL.pnk],[156,16,COL.yel],[70,18,COL.cyn],[188,14,COL.yel]];
+  for (const f of fl) pset(f[0], Y_BUSH + f[1], f[2]);
   for (let i = 0; i < 5; i++) {
     const x = BAY_X[i];
-    fillR(x, Y_HOME + 3, 16, 13, COL.k);
-    fillR(x, Y_HOME, 16, 3, COL.dgr);
+    fillR(x, Y_BUSH + 8, 16, 16, COL.k);
+    fillR(x, Y_BUSH + 6, 16, 3, darkB); /* lip over the bay */
+    /* rounded inner corners */
+    pset(x, Y_BUSH + 9, darkB); pset(x + 15, Y_BUSH + 9, darkB);
     const st = homes[i];
-    if (st === 1) blit(SPR.homeFrog, x, Y_HOME);
-    else if (st === 2) blit(SPR.fly, x + 4, Y_HOME + 5);
+    if (st === 1) blit(SPR.homeFrog, x, Y_LAND);
+    else if (st === 2) blit(SPR.fly, x + 4, Y_LAND + 4);
     else if (st === 3) {
-      fillR(x + 1, Y_HOME + 6, 14, 7, COL.grn);
-      fillR(x + 11, Y_HOME + 7, 4, 3, COL.yel);
-      fillR(x + 2, Y_HOME + 12, 8, 2, COL.dgr);
+      fillR(x + 1, Y_LAND + 4, 14, 8, COL.grn);
+      fillR(x + 10, Y_LAND + 5, 5, 4, COL.yel);
+      fillR(x + 2, Y_LAND + 10, 8, 2, COL.dgr);
     }
   }
 }
@@ -890,25 +933,32 @@ function drawObjects() {
       blit(spr, o.x | 0, o.y, o.vx < 0);
     } else if (o.typ === "log") {
       const lx = o.x | 0, ly = o.y + 3, lw = o.w, lh = 10;
-      fillR(lx + 2, ly, lw - 4, lh, COL.brn);
-      fillR(lx, ly + 2, lw, lh - 4, COL.brn);
-      fillR(lx + 4, ly + 2, lw - 8, 2, rgb("#a06020"));
+      const body = COL.log || COL.brn, hi = COL.logHi || rgb("#e08a62"), ring = rgb("#7a2c1c");
+      fillR(lx + 2, ly, lw - 4, lh, body);
+      fillR(lx, ly + 2, lw, lh - 4, body);
+      fillR(lx + 3, ly + 1, lw - 6, 2, hi);
+      /* dark ring bands every 8 px, like the arcade logs */
+      for (let rx = lx + 6; rx < lx + lw - 4; rx += 8) fillR(rx, ly, 2, lh, ring);
+      /* rounded caps */
+      fillR(lx, ly + 3, 2, lh - 6, body);
+      fillR(lx + lw - 2, ly + 3, 2, lh - 6, body);
     } else if (o.typ === "turt") {
       const phase = o.dive < 0 ? 0 : o.dive;
-      let spr = SPR.turt;
-      if (phase > 140 && phase < 200) spr = SPR.turtDive;
-      if (phase >= 160 && phase <= 200) spr = SPR.turtDown;
-      if (phase >= 170 && phase <= 195) spr = SPR.turtDown;
+      const red = o.color === "red";
+      let spr = red ? SPR.turtR : SPR.turt;
+      if (phase > 140 && phase < 200) spr = red ? SPR.turtRDive : SPR.turtDive;
+      if (phase >= 160 && phase <= 210) spr = red ? SPR.turtRDown : SPR.turtDown;
       const flip = o.vx < 0;
-      if (!(phase >= 170 && phase <= 195)) {
+      const hidden = phase >= 175 && phase <= 205;
+      if (!hidden) {
         blit(spr, o.x | 0, o.y, flip);
         blit(spr, (o.x | 0) + 16, o.y, flip);
         blit(spr, (o.x | 0) + 32, o.y, flip);
       }
     } else if (o.typ === "croc") {
-      blit(SPR.croc, o.x | 0, o.y, o.vx < 0);
-      if (o.vx < 0) blit(SPR.crocJaw, o.x | 0, o.y, true);
-      else blit(SPR.crocJaw, (o.x | 0) + 24, o.y, false);
+      blit(SPR.croc, o.x | 0, o.y + 1, o.vx < 0);
+      if (o.vx < 0) blit(SPR.crocJaw, o.x | 0, o.y + 1, true);
+      else blit(SPR.crocJaw, (o.x | 0) + 24, o.y + 1, false);
     }
   }
   for (const s of snakes) blit(SPR.snake, s.x | 0, s.y, s.dir < 0);
@@ -940,20 +990,45 @@ function drawHud() {
   text(scoreStr(hi), 96, 9, COL.red);
   /* lives as tiny frogs */
   const showL = Math.max(0, (state === "play" || state === "dying" || state === "clear" ? lives - 1 : 0));
-  for (let i = 0; i < Math.min(showL, 6); i++) blit(SPR.homeFrog, 4 + i * 16, Y_STAT + 2);
-  /* time bar (hidden on attract menus) */
+  for (let i = 0; i < Math.min(showL, 6); i++) blit(SPR.homeFrog, 4 + i * 16, Y_STAT);
+  /* time bar sits in the bottom 8 px and shrinks toward TIME at lower right */
   const showPlayHud = !(state === "attract" && attractMode !== "demo");
   if (showPlayHud) {
-  text("TIME", W - 32, Y_STAT + 16, COL.yel);
-  const barW = 144, barX = 40, barY = Y_STAT + 16;
+  text("TIME", W - 32, Y_STAT + 8, COL.yel);
+  const barW = 144, barX = 40, barY = Y_STAT + 8;
   const frac = Math.max(0, timeLeft) / TIME_TICKS;
   const w = Math.max(0, (barW * frac) | 0);
   const col = timeLeft <= WARN_TICKS ? COL.red : COL.grn;
-  if (w) fillR(barX + (barW - w), barY, w, 10, col);
+  if (w) fillR(barX + (barW - w), barY, w, 8, col);
   }
-  if (state === "attract" || state === "over") text("CREDIT " + String(credits).padStart(2, "0"), W - 80, Y_STAT + 20, COL.cyn);
+  if (state === "attract" || state === "over") text("CREDIT " + String(credits).padStart(2, "0"), W - 80, Y_STAT + 8, COL.cyn);
 }
 
+
+function drawLogo(x, y) {
+  /* Hand-drawn FROGGER wordmark, arcade-colored block letters. */
+  const letters = {
+    F: ["######","#.....","#.....","#####.","#.....","#.....","#....."],
+    R: ["######","#....#","#....#","#####.","#..#..","#...#.","#....#"],
+    O: [".####.","#....#","#....#","#....#","#....#","#....#",".####."],
+    G: [".#####","#.....","#.....","#..###","#....#","#....#",".####."],
+    E: ["######","#.....","#.....","#####.","#.....","#.....","######"]
+  };
+  const cols = [COL.grn, COL.yel, COL.red, COL.cyn, COL.pnk, COL.org, COL.wht];
+  const word = "FROGGER";
+  let xx = x;
+  for (let i = 0; i < word.length; i++) {
+    const g = letters[word[i]];
+    const c = cols[i];
+    for (let j = 0; j < 7; j++) for (let k = 0; k < 6; k++) if (g[j][k] === "#") {
+      pset(xx + k * 2, y + j * 2, c);
+      pset(xx + k * 2 + 1, y + j * 2, c);
+      pset(xx + k * 2, y + j * 2 + 1, c);
+      pset(xx + k * 2 + 1, y + j * 2 + 1, c);
+    }
+    xx += 14;
+  }
+}
 function drawAttract() {
   if (attractMode === "demo" && frog) {
     drawBackground();
@@ -975,7 +1050,7 @@ function drawAttract() {
     }
     textC("ARCADE REMAKE", 200, COL.wht);
   } else if (attractMode === "table") {
-    textC("FROGGER", 48, COL.grn);
+    drawLogo(63, 36);
     textC("-POINT TABLE-", 72, COL.wht);
     text("10 PTS FOR EACH STEP", 16, 96, COL.yel);
     text("50 PTS FOR EVERY FROG", 16, 112, COL.yel);
@@ -1053,11 +1128,16 @@ if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 fit();
 
 window.__frog = {
-  get state() { return { state, score, lives, level, timeLeft, homes: homes.slice(), credits, demo, frame }; },
+  get state() { return { state, score, lives, level, timeLeft, homes: homes.slice(), credits, demo, frame, racerBoost, frog: frog && { x: frog.x, y: frog.y } }; },
   start: () => startGame(false),
   demo: () => startGame(true),
-  setLevel: n => { level = n; startLevel(true); state = "play"; },
-  hop: d => beginHop(d)
+  setLevel: n => { level = n; startLevel(true); state = "play"; demo = false; },
+  park: y => { if (frog) { frog.y = y; frog.x = 104; hop = null; } },
+  setHomes: arr => { homes = arr.slice(); },
+  boost: v => { racerBoost = !!v; },
+  hop: d => beginHop(d),
+  showAttract: m => { state = "attract"; attractMode = m || "table"; demo = false; },
+  canvas: off
 };
 
 /* ---------- loop ---------- */
