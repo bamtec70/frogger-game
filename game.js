@@ -944,8 +944,8 @@ function drawHud() {
   /* time bar (hidden on attract menus) */
   const showPlayHud = !(state === "attract" && attractMode !== "demo");
   if (showPlayHud) {
-  text("TIME", W - 36, Y_STAT + 16, COL.yel);
-  const barW = 160, barX = 40, barY = Y_STAT + 16;
+  text("TIME", W - 32, Y_STAT + 16, COL.yel);
+  const barW = 144, barX = 40, barY = Y_STAT + 16;
   const frac = Math.max(0, timeLeft) / TIME_TICKS;
   const w = Math.max(0, (barW * frac) | 0);
   const col = timeLeft <= WARN_TICKS ? COL.red : COL.grn;
