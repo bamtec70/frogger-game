@@ -15,13 +15,13 @@ const COL = {
   k: rgb("#000000"), blu: rgb("#0000ff"), mag: rgb("#de00ff"), red: rgb("#ff0000"),
   grn: rgb("#68f700"), org: rgb("#ffa300"), cyn: rgb("#00f7ff"), yel: rgb("#ffff00"),
   wht: rgb("#f7f7ff"), pnk: rgb("#ffa3ff"), pur: rgb("#ff00ff"), dgr: rgb("#2a8a00"),
-  brn: rgb("#c27a28"), pnk2: rgb("#ff7ad8"), sky: rgb("#3c3cff")
+  brn: rgb("#c27a28"), pnk2: rgb("#ff7ad8"), sky: rgb("#3c3cff"), navy: rgb("#000047")
 };
 
 /* row tops, 16 px bands */
 const Y_SCORE = 0, Y_HOME = 16, Y_RIV = [32, 48, 64, 80, 96], Y_MED = 112;
 const Y_ROAD = [128, 144, 160, 176, 192], Y_WALK = 208, Y_STAT = 224;
-const BAY_X = [24, 64, 104, 144, 184]; /* 16 px wide bays, 24 px bushes */
+const BAY_X = [8, 56, 104, 152, 200]; /* 16 px bays, 48 px centers, measured from MAME */
 
 function cls(c) { fb.fill(c); }
 function pset(x, y, c) { if (x >= 0 && x < W && y >= 0 && y < H) fb[y * W + x] = c; }
@@ -144,7 +144,7 @@ function text(str, x, y, c, sp) {
   }
 }
 function textC(str, y, c) { text(str, (W - str.length * 8) >> 1, y, c); }
-function scoreStr(n) { n = Math.max(0, Math.min(99990, n | 0)); const s = String(n); return s.length < 2 ? "00" : s; }
+function scoreStr(n) { n = Math.max(0, Math.min(99990, n | 0)); return String(n).padStart(5, "0"); }
 
 /* ---------- audio (AY-style squares + noise, 3 voices) ---------- */
 try { ["frog_muted", "frog_muted_v2", "muted"].forEach(k => localStorage.removeItem(k)); } catch (_) {}
@@ -337,14 +337,16 @@ function tier(level) {
   return tables[t];
 }
 function speeds(level) {
-  const boost = 1 + (level - 1) * 0.09;
-  /* road 0..4 top to bottom visually is Y_ROAD[0] trucks first in my Y_ROAD array (top of road = trucks = lane 5) */
-  /* store as [lane0=trucks, racers, pink, dozers, yellow] matching Y_ROAD */
+  /* Level 1 from MAME: every lane is sub-rate, 1 px every N frames.
+     Road top to bottom: trucks 1/2 L, racers 1/3 R, pink 1/4 L, dozers 1/5 R, yellow 1/6 L.
+     River top to bottom: mid 1/3 R, turt 1/2 L, long 1/1 R, short 1/6 R, turt 1/2 L.
+     Later-level control bytes were not captured; apply a light per-level boost only. */
+  const boost = 1 + (level - 1) * 0.12;
   return {
-    road: [0.55, 1.35, 0.85, 0.72, 0.62].map(s => s * boost),
-    river: [0.58, 0.88, 0.7, 0.78, 0.66].map(s => s * boost),
-    dirRoad: [1, -1, 1, -1, 1],     /* trucks R, racers L, pink R, dozers L, yellow R */
-    dirRiv:  [-1, 1, -1, 1, -1]     /* top mid-logs L, turt R, long L, short R, turt L */
+    road: [1/2, 1/3, 1/4, 1/5, 1/6].map(s => s * boost),
+    river: [1/3, 1/2, 1/1, 1/6, 1/2].map(s => s * boost),
+    dirRoad: [-1, 1, -1, 1, -1],
+    dirRiv:  [1, -1, 1, 1, -1]
   };
 }
 
@@ -621,7 +623,7 @@ function stepObjects() {
   const sp = speeds(level);
   for (const o of objects) {
     let vx = o.vx;
-    if (o.kind === "racer" && racerBoost) vx *= 1.85;
+    if (o.kind === "racer" && racerBoost) vx *= 3 /* ~1 px per frame on level 1, unverified */;
     o.x = wrapX(o.x + vx, o.w);
     if (o.typ === "turt" && o.dive >= 0) {
       o.dive = (o.dive + 1) % 240;
@@ -664,7 +666,7 @@ function stepFrog() {
   }
   if (frog.onPlat) {
     let vx = frog.onPlat.vx;
-    if (frog.onPlat.kind === "racer" && racerBoost) vx *= 1.85;
+    if (frog.onPlat.kind === "racer" && racerBoost) vx *= 3 /* ~1 px per frame on level 1, unverified */;
     frog.x += vx;
     if (frog.x + 8 < 4 || frog.x + 8 > W - 4) { die("water"); return; }
   }
@@ -787,7 +789,7 @@ function update() {
 function playTick(isDemoTick) {
   if (timeFrozen > 0) { timeFrozen--; stepObjects(); tickMusic(); return; }
   /* mid-board racer speedup after about 15 seconds */
-  if (TIME_TICKS - timeLeft >= 30) racerBoost = true;
+  if (TIME_TICKS - timeLeft >= 30) racerBoost = true; /* mid-board racer speedup; exact MAME rate not captured */
   stepObjects();
   if (demo || isDemoTick) demoAI();
   stepFrog();
@@ -840,10 +842,21 @@ function updateEntry() {
 function drawBackground() {
   cls(COL.k);
   /* river */
-  fillR(0, Y_HOME, W, Y_MED - Y_HOME, COL.blu);
-  /* magenta banks: home bank already partly green bushes; median and sidewalk */
-  fillR(0, Y_MED, W, 16, COL.mag);
-  fillR(0, Y_WALK, W, 16, COL.mag);
+  fillR(0, Y_HOME, W, Y_MED - Y_HOME, COL.navy);
+  /* purple brick banks, matching the arcade median and sidewalk */
+  function bank(y0) {
+    const a = rgb("#8500d9"), b = rgb("#0000d9"), c = rgb("#e000d9");
+    for (let j = 0; j < 16; j++) {
+      for (let x = 0; x < W; x++) {
+        const cell = ((x >> 2) & 1) ^ ((j >> 2) & 1);
+        let col = cell ? a : b;
+        if (j % 4 === 0) col = c;
+        pset(x, y0 + j, col);
+      }
+    }
+  }
+  bank(Y_MED);
+  bank(Y_WALK);
   /* continuous hedge with flower dots, then cut five bays */
   fillR(0, Y_HOME, W, 16, COL.dgr);
   for (let x = 0; x < W; x++) {
@@ -921,62 +934,57 @@ function drawFrog() {
 
 function drawHud() {
   text("1-UP", 8, 1, COL.wht);
-  text(scoreStr(demo ? 0 : score), 8, 9, COL.wht);
+  text(scoreStr(demo ? 0 : score), 8, 9, COL.red);
   text("HI-SCORE", 80, 1, COL.wht);
   const hi = Math.max(scores[0][1], demo ? 0 : score);
-  text(scoreStr(hi), 96, 9, COL.wht);
+  text(scoreStr(hi), 96, 9, COL.red);
   /* lives as tiny frogs */
   const showL = Math.max(0, (state === "play" || state === "dying" || state === "clear" ? lives - 1 : 0));
   for (let i = 0; i < Math.min(showL, 6); i++) blit(SPR.homeFrog, 4 + i * 16, Y_STAT + 2);
   /* time bar (hidden on attract menus) */
   const showPlayHud = !(state === "attract" && attractMode !== "demo");
   if (showPlayHud) {
-  text("TIME", W - 36, Y_STAT + 14, COL.wht);
-  const barW = 120, barX = W - 40 - barW, barY = Y_STAT + 14;
+  text("TIME", W - 36, Y_STAT + 16, COL.yel);
+  const barW = 160, barX = 40, barY = Y_STAT + 16;
   const frac = Math.max(0, timeLeft) / TIME_TICKS;
   const w = Math.max(0, (barW * frac) | 0);
   const col = timeLeft <= WARN_TICKS ? COL.red : COL.grn;
-  fillR(barX, barY, barW, 8, rgb("#202020"));
-  if (w) fillR(barX + (barW - w), barY, w, 8, col);
-  /* level */
-  text("L" + String(level), W - 28, Y_STAT + 2, COL.cyn);
+  if (w) fillR(barX + (barW - w), barY, w, 10, col);
   }
-  if (credits > 0 && (state === "attract" || state === "over")) text("CREDIT " + credits, 8, Y_STAT + 2, COL.wht);
+  if (state === "attract" || state === "over") text("CREDIT " + String(credits).padStart(2, "0"), W - 80, Y_STAT + 20, COL.cyn);
 }
 
 function drawAttract() {
-  drawBackground();
   if (attractMode === "demo" && frog) {
+    drawBackground();
     drawObjects();
     drawFrog();
     drawHud();
     return;
   }
-  fillR(0, Y_STAT, W, 32, COL.k);
+  /* Attract menus are a blue upper half and a black lower half, no playfield. */
+  cls(COL.k);
+  fillR(0, 0, W, 128, COL.navy);
   drawHud();
-  if (attractMode === "rank" || attractMode === "table") {
-    fillR(0, 24, W, 186, COL.k);
-  }
   if (attractMode === "rank") {
-    textC("FROGGER", 32, COL.grn);
     textC("SCORE RANKING", 56, COL.yel);
     const suf = ["ST", "ND", "RD", "TH", "TH"];
     for (let i = 0; i < 5; i++) {
-      const y = 72 + i * 16;
-      text((i + 1) + suf[i] + "  " + scores[i][0] + "  " + scoreStr(scores[i][1]), 32, y, COL.wht);
+      const y = 80 + i * 16;
+      text((i + 1) + " " + suf[i] + "  " + scores[i][0] + "  " + scoreStr(scores[i][1]), 24, y, COL.wht);
     }
-    if ((frame >> 5) & 1) textC(credits ? "PUSH START BUTTON" : "INSERT COIN", 168, COL.grn);
-    textC("ARCADE REMAKE", 200, COL.cyn);
+    textC("ARCADE REMAKE", 200, COL.wht);
   } else if (attractMode === "table") {
-    textC("FROGGER", 32, COL.grn);
-    textC("POINT TABLE", 56, COL.yel);
-    text("FOR EACH STEP UP", 16, 72, COL.wht); text("10", 176, 72, COL.grn);
-    text("ARRIVED HOME", 16, 92, COL.wht); text("50", 176, 92, COL.grn);
-    text("PLUS TIME BONUS", 16, 108, COL.wht);
-    text("A FLY OR LADY FROG", 16, 128, COL.wht); text("200", 168, 128, COL.grn);
-    text("FIVE FROGS HOME", 16, 148, COL.wht); text("1000", 160, 148, COL.grn);
-    text("EXTRA FROG AT", 16, 168, COL.wht); text("20000", 152, 168, COL.yel);
-    if ((frame >> 5) & 1) textC(credits ? "PUSH START BUTTON" : "INSERT COIN", 200, COL.grn);
+    textC("FROGGER", 48, COL.grn);
+    textC("-POINT TABLE-", 72, COL.wht);
+    text("10 PTS FOR EACH STEP", 16, 96, COL.yel);
+    text("50 PTS FOR EVERY FROG", 16, 112, COL.yel);
+    text("ARRIVED HOME SAFELY", 16, 124, COL.red);
+    text("1000 PTS BY SAVING FROGS", 16, 144, COL.yel);
+    text("INTO FIVE HOMES", 16, 156, COL.red);
+    text("PLUS BONUS", 16, 176, COL.wht);
+    text("10 PTS X REMAINING SECOND", 16, 188, COL.red);
+    if ((frame >> 5) & 1) textC(credits ? "PUSH START BUTTON" : "INSERT COIN", 216, COL.cyn);
   }
 }
 
@@ -989,7 +997,7 @@ function drawPlay() {
     textC("ARRIVED HOME SAFELY", 120, COL.yel);
   }
   if (state === "over") {
-    textC("GAME OVER", 120, COL.red);
+    textC("GAME OVER", Y_MED + 4, COL.red);
   }
   if (state === "entry") {
     fillR(16, 88, W - 32, 80, COL.k);
