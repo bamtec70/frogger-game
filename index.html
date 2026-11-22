@@ -8,7 +8,7 @@
 <meta name="mobile-web-app-capable" content="yes" />
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 8 8%27%3E%3Crect width=%278%27 height=%278%27 fill=%27000%27/%3E%3Cpath d=%27M2 2h1v1h2V2h1v1H5v1H3V3H2z%27 fill=%27%2368f700%27/%3E%3Crect x=%271%27 y=%274%27 width=%276%27 height=%273%27 fill=%27%2368f700%27/%3E%3C/svg%3E" />
 <title>FROGGER - Arcade Remake</title>
-<link rel="stylesheet" href="style.css?v=6" />
+<link rel="stylesheet" href="style.css?v=7" />
 </head>
 <body>
 <div id="game-wrapper">
@@ -29,10 +29,10 @@
     <button type="button" id="btn-coin" class="act-btn" aria-label="Coin">COIN</button>
     <button type="button" id="btn-start" class="act-btn start" aria-label="Start">START</button>
   </div>
-  <div id="rotate-hint">ROTATE FOR BEST PLAY &#8635;</div>
+  <div id="rotate-hint">ROTATE FOR BEST PLAY <svg class="rot-ico" width="12" height="12" viewBox="0 0 12 12" aria-hidden="true"><path fill="currentColor" d="M10 6a4 4 0 1 1-4-4v1.2L8.2 1.8 6 .5V2A5 5 0 1 0 11 6H10z"/></svg></div>
 </div>
-<script src="font.js?v=6"></script>
-<script src="game.js?v=6"></script>
+<script src="font.js?v=7"></script>
+<script src="game.js?v=7"></script>
 <script>(function(){var t;function f(){clearTimeout(t);t=setTimeout(function(){document.documentElement.style.height=window.innerHeight+"px";window.dispatchEvent(new Event("resize"));},60);}window.addEventListener("orientationchange",function(){f();setTimeout(f,350);setTimeout(f,800);});if(window.visualViewport)visualViewport.addEventListener("resize",f);if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener("change",f);})();</script>
 </body>
 </html>

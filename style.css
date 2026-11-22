@@ -54,6 +54,7 @@ body.touch #actions{
   body.touch .act-btn.start{width:96px;height:64px}
 }
 @media (orientation:portrait){
-  body.touch #rotate-hint{display:block;color:#ff0;font-size:12px;letter-spacing:2px;animation:blink 1.2s steps(2) infinite;margin-top:2px}
+  body.touch #rotate-hint{display:flex;align-items:center;justify-content:center;gap:6px;color:#ff0;font-size:12px;letter-spacing:2px;animation:blink 1.2s steps(2) infinite;margin-top:2px}
+body.touch #rotate-hint .rot-ico{flex:0 0 12px;display:block}
 }
 @keyframes blink{50%{opacity:.3}}

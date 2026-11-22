@@ -12,17 +12,19 @@ const img = octx.createImageData(W, H), fb = new Uint32Array(img.data.buffer);
 
 const rgb = h => { const n = parseInt(h.slice(1), 16); return 0xff000000 | ((n & 255) << 16) | (n & 0xff00) | (n >> 16); };
 const COL = {
-  k: rgb("#000000"), blu: rgb("#0000ff"), mag: rgb("#de00ff"), red: rgb("#ff0000"),
-  grn: rgb("#68f700"), org: rgb("#ffa300"), cyn: rgb("#00f7ff"), yel: rgb("#ffff00"),
-  wht: rgb("#f7f7ff"), pnk: rgb("#ffa3ff"), pur: rgb("#ff00ff"), dgr: rgb("#2a8a00"),
-  brn: rgb("#c27a28"), pnk2: rgb("#ff7ad8"), sky: rgb("#3c3cff"), navy: rgb("#000047"), log: rgb("#c35b45"), logHi: rgb("#e08a62"), bush: rgb("#1dc300")
+  k: rgb("#000000"), blu: rgb("#0000ff"), mag: rgb("#e03ed9"), red: rgb("#e00000"),
+  grn: rgb("#1dc300"), org: rgb("#e03e00"), cyn: rgb("#00c3d9"), yel: rgb("#e0e000"),
+  wht: rgb("#f7f7ff"), pnk: rgb("#e03ed9"), pur: rgb("#8500d9"), dgr: rgb("#2a8a00"),
+  brn: rgb("#c35b45"), pnk2: rgb("#e03ed9"), sky: rgb("#3c3cff"), navy: rgb("#000047"),
+  log: rgb("#c35b45"), logHi: rgb("#e08a62"), logDk: rgb("#855b45"), bush: rgb("#1dc300"),
+  veh: rgb("#c3c3d9"), lime: rgb("#85e000"), dirt: rgb("#e03e00")
 };
 
 /* row tops, 16 px bands */
 const Y_SCORE = 0, Y_HOME = 16, Y_BUSH = 24, Y_LAND = 32;
 const Y_RIV = [48, 64, 80, 96, 112], Y_MED = 128;
 const Y_ROAD = [144, 160, 176, 192, 208], Y_WALK = 224, Y_STAT = 240;
-const BAY_X = [8, 56, 104, 152, 200]; /* 16 px bays, 48 px centers, measured from MAME */
+const BAY_X = [6, 54, 102, 150, 198], BAY_W = 20; /* 20 px notched bays, 48 px centers, measured from MAME */
 
 function cls(c) { fb.fill(c); }
 function pset(x, y, c) { if (x >= 0 && x < W && y >= 0 && y < H) fb[y * W + x] = c; }
@@ -37,82 +39,90 @@ function fillR(x, y, w, h, c) {
 
 /* ---------- sprites: letter pixels, hand-drawn to match the arcade look ---------- */
 /* . empty  g green  d dark green  w white  r red  y yellow  o orange  c cyan  m magenta  p pink  b blue  n brown  k black */
-const CM = { g: "grn", d: "dgr", w: "wht", r: "red", y: "yel", o: "org", c: "cyn", m: "mag", p: "pnk2", b: "blu", n: "brn", k: "k", u: "pur", s: "sky" };
+const CM = { g: "grn", d: "dgr", w: "wht", r: "red", y: "yel", o: "org", c: "cyn", m: "mag", p: "pnk2", b: "blu", n: "brn", k: "k", u: "pur", s: "sky", v: "veh", i: "lime", e: "dirt", a: "logDk" };
 function pack(s) { return s.trim().split(/\s+/); }
 const SPR = {
   frogU: pack(`
-....gggg.... ....gggg.... ...gggggg... ..ggyygggg.. ..ggyygggg.. .ggggggggg.. gg..gggg..gg gg..gggg..gg .gggggggggg. ..gggggggg.. ...gg..gg... ..gg.gg.gg.. .gg......gg. .g........g. .............. ..............`),
+................ ................ ...g..yy..g..... ..gg.yyyy.gg.... ..g.iiiiii.g.... .gg.iyyyyi.gg... .g...iiii...g... .....iiii....... ...g..ii..g..... ...g......g..... ................ ................ ................ ................ ................ ................`),
   frogU2: pack(`
-.....gg..... ....gggg.... ...gggggg... ..ggyygggg.. ..ggyygggg.. .ggggggggg.. g...gggg...g g...gggg...g .gggggggggg. ..gggggggg.. .gg.gggg.gg. gg..gggg..gg g..........g .............. .............. ..............`),
+................ ................ ....g.yy.g...... ...g.yyyy.g..... ..g.iiiiii.g.... .g..iyyyyi..g... g....iiii....g.. .....iiii....... ....g.ii.g...... ................ ................ ................ ................ ................ ................ ................`),
   frogD: pack(`
-.............. .............. .g........g. .gg......gg. ..gg.gg.gg.. ...gg..gg... ..gggggggg.. .gggggggggg. gg..gggg..gg gg..gggg..gg .ggggggggg.. ..ggyygggg.. ..ggyygggg.. ...gggggg... ....gggg.... ....gggg....`),
+................ ................ ...g......g..... ...g..ii..g..... .....iiii....... .g...iiii...g... .gg.iyyyyi.gg... ..g.iiiiii.g.... ..gg.yyyy.gg.... ...g..yy..g..... ................ ................ ................ ................ ................ ................`),
   frogL: pack(`
-....gggggg.... ...ggggggg.... ..gggg..g..... .gggggg.g..... ggyygggggg.... ggyyggggggg... gggggggggggg.. gggggggggggg.. ggyyggggggg... ggyygggggg.... .gggggg.g..... ..gggg..g..... ...gg.ggg..... ....g..gg..... .............. ..............`),
+................ ................ ....ggg......... ...giiiig.g..... ..giiiiiigg..... .gyyiiiiii...... .gyyiiiiii...... ..giiiiiigg..... ...giiiig.g..... ....ggg......... ................ ................ ................ ................ ................ ................`),
   frogR: pack(`
-....gggggg.... ....ggggggg... .....g..gggg.. .....g.ggggg.. ....ggggggyygg ...gggggggyygg ..gggggggggggg ..gggggggggggg ...gggggggyygg ....ggggggyygg .....g.ggggg.. .....g..gggg.. .....ggg.gg... .....gg..g.... .............. ..............`),
+................ ................ .........ggg.... .....g.giiiig... .....ggiiiiiig.. ......iiiiiiyg.. ......iiiiiiyg.. .....ggiiiiiig.. .....g.giiiig... .........ggg.... ................ ................ ................ ................ ................ ................`),
   ladyU: pack(`
-....pppp.... ....pppp.... ...pppppp... ..ppwwpppp.. ..ppwwpppp.. .ppppppppp.. pp..pppp..pp .pppppppppp. ..pppppppp.. ...pp..pp... ..pp.pp.pp.. .pp......pp. .............. .............. .............. ..............`),
+................ ................ ...p..cc..p..... ..pp.cccc.pp.... ..p.cccccc.p.... .pp.c.ccc.pp.... .p...cccc...p... .....cccc....... ...p..cc..p..... ...p......p..... ................ ................ ................ ................ ................ ................`),
   carY: pack(`
-................ ..yyyyyyyyyy.... .yyyyyyyyyyyy... yywwyyyyyywwyy. yyyyyyyyyyyyyy. yyyyyyyyyyyyyy. ..yy......yy... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ .............rr. .......yyy...rr. .....yyyyyy..rr. ..ggyyyyyyyyy... .uuuuyyyrrryy... ..ggyyyyyyyyy... .....yyyyyy..rr. .......yyy...rr. .............rr. ................ ................ ................ ................ ................ ................`),
   carP: pack(`
-................ ..pppppppppp.... .pppppppppppp... ppwwppppppwwpp. pppppppppppppp. pppppppppppppp. ..pp......pp... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ................ .pppp.....pppp.. ppcccc...ccccpp. ppccccpccccccpp. ppppppppppppppp. .iipp.....ppii.. ................ ................ ................ ................ ................ ................ ................ ................`),
   dozer: pack(`
-................ wwwww.oooooooo.. wwwwwooooooooo. wwwoooooooooooo oooooooooooooo. oooooooooooooo. ..oo......oo... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ................ .rvrv......g.... .rvrv....vvvvg.. .rvrv.vvvvvvvggg .rvrv.vvggvvvggg .rvrv.vvvvvvvggg .rvrv....vvvvg.. .rvrv......g.... ................ ................ ................ ................ ................ ................ ................`),
   racer: pack(`
-................ ..wwwwwwwwww.... .wwwwwwwwwwww... wwkkwwwwwwkkww. wwwwwwwwwwwwww. wwrwwwwwwwrrww. ..ww......ww... ..kk......kk... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ .rr............. .rr..vvvv....... .rr.vvvvvv...... ....vvvvvvvvgg.. ....vvvgggggggg. ....vvvvvvvvgg.. .rr.vvvvvv...... .rr..vvvv....... .rr............. ................ ................ ................ ................ ................ ................`),
   truck: pack(`
-................................
-ccccccccccccccccccccwwww........
-ccccccccccccccccccccwwww........
-ccwwccccccccccccccccwwww........
-ccccccccccccccccccccrrrr........
-ccccccccccccccccccccrrrr........
-..cc......cc......cc..kk........
-..kk......kk......kk..kk........
-................................
-................................
-................................
-................................
-................................
-................................
-................................
-................................`),
-  log: pack(`
-................ nnnnnnnnnnnnnnnn .nnnnnnnnnnnnnn. nnnnnnnnnnnnnnnn nnnnnnnnnnnnnnnn .nnnnnnnnnnnnnn. nnnnnnnnnnnnnnnn ................ ................ ................ ................ ................ ................ ................ ................ ................`),
-  logCapL: pack(`
-................ .....nnnnnnnnnnn ....nnnnnnnnnnn. ...nnnnnnnnnnnnn ...nnnnnnnnnnnnn ....nnnnnnnnnnn. .....nnnnnnnnnnn ................ ................ ................ ................ ................ ................ ................ ................ ................`),
-  logCapR: pack(`
-................ nnnnnnnnnnnn..... .nnnnnnnnnnnn.... nnnnnnnnnnnnn... nnnnnnnnnnnnn... .nnnnnnnnnnnn.... nnnnnnnnnnnn..... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+...........................
+...........................
+...........................
+......gg...........gg......
+.vvvvvvvvvvvvvvvvvvvrrv....
+vvvvvvvvvvvvvvvvvvvvvrrvgg.
+vvvvvvvvvvvvvvvvvvvvvrrvgg.
+.vvvvvvvvvvvvvvvvvvvrrv....
+......gg...........gg......
+...........................
+...........................
+...........................
+...........................
+...........................
+...........................
+...........................`),
   turt: pack(`
-................ ......gg...... ....ggddgg.... ...gddddddg... ..ggddddddgg.. .gggddddddggg. gggddddddddggg .gggddddddggg. ..gggddgggg... ...gggggg.... ....g..g..... ...g....g.... ................ ................ ................ ................`),
+................ ................ .....g....g..... ...g.rrrrrr.g... ..g.rrrrrrrr.g.. ...rrrvvvvrrr... ...rrrrrrrrrr... ..g.rrrrrrrr.g.. ...g......g..... ................ ................ ................ ................ ................ ................ ................`),
   turtDive: pack(`
-................ ................ ......gg...... ....ggddgg.... ...gddddddg... ..ggddddddgg.. ...ggddddgg... ....gggggg.... .....g..g..... ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ................ ......g..g...... .....gggggg..... ......gvvv...... .......gg....... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   turtDown: pack(`
-................ ................ ................ ................ ......dd...... .....dddd..... ......dd...... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ................ ................ ................ ......g..g...... .......gg....... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   turtR: pack(`
-................ ......rr...... ....rrddrr.... ...rddddddr... ..rrddddddrr.. .rrrddddddrrr. rrrddddddddrrr .rrrddddddrrr. ..rrrddrrrr... ...rrrrrrr.... ....r..r..... ...r....r.... ................ ................ ................ ................`),
+................ ................ .....g....g..... ...g.rrrrrr.g... ..g.rrrrrrrr.g.. ...rrrvvvvrrr... ...rrrrrrrrrr... ..g.rrrrrrrr.g.. ...g......g..... ................ ................ ................ ................ ................ ................ ................`),
   turtRDive: pack(`
-................ ................ ......rr...... ....rrddrr.... ...rddddddr... ..rrddddddrr.. ...rrddddrr... ....rrrrrr.... .....r..r..... ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ................ ......g..g...... .....gggggg..... ......gvvv...... .......gg....... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   turtRDown: pack(`
-................ ................ ................ ................ ......dd...... .....dddd..... ......dd...... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ................ ................ ................ ......g..g...... .......gg....... ................ ................ ................ ................ ................ ................ ................ ................ ................`),
   croc: pack(`
-................ ....ggggggggggg. ...ggdddddddddg gggggdddddddddg ggggyyddddddggg ...ggdddddddddg ....ggggggggg.. .....g.....g... ................ ................ ................ ................ ................ ................ ................ ................`),
-  crocJaw: pack(`
-................ gg.............. gggg............ ggyyggggggggggg. gggggdddddddddg ggggddddddddddg .ggggggggggggg. ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+................................................
+......................................n.........
+................n.n.n.n.n.n.........nn.n........
+.....n........nnnnnnnnnnnnnnn.....nnn...n.......
+....nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.w.n.......
+..nnnnnnnnnnnnnnnvnvnvnvnnnnnnnnnnnnn...nn......
+.nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.w...n.....
+nnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnnn.....n.....
+.................vv.vv.vv.vv.v.....vv.vv........
+................................................
+................................................
+................................................
+................................................
+................................................
+................................................
+................................................`),
   snake: pack(`
-................ ..uu....uu...... uuuuuuuuuuuu.... uuyyuuyyuuyyuu.. .uuyyyyyyyyyu... ..uuuuuuuuu.... ................ ................ ................ ................ ................ ................ ................ ................ ................ ................`),
+................................ ................................ .iiii........................... iiiiiii...iiii.................. .iiiiiiiiiiiii.....iiii......... ...iiiiiiii.....iiiiiiii....ii.. ...............iiiiiii....iiii.. ..................ii.........i.. ................................ ................................ ................................ ................................ ................................ ................................ ................................ ................................`),
   otter: pack(`
-................ ................ ...nnnnnnn.... ..nnwwwnnnn... .nnnnnnnnnnn.. nnnnnnnnnnnnn. .nnn....nnn... ..n......n.... ................ ................ ................ ................ ................ ................ ................ ................`),
+................ ................ ..........nn.... ........nnnnn... .....nnnnnnnn... ..nnnnnnnnnnn... .nnnnn...vv..... ..nn....v.vv.... ..............v. ................ ................ ................ ................ ................ ................ ................`),
   fly: pack(`
-..y..y.. .yyyyyy. yyyyyyyy ..yyyy.. ...yy... ...yy... ........ ........`),
+.c..e... .cccec.. ..ceec.. .cccecc. ..e..c.. ........ ........ ........`),
   homeFrog: pack(`
-................ ....gggg.... ...gggggg... ..ggyygggg.. .ggggggggg.. ..gggggggg.. ...gg..gg... ..g......g.. ................ ................ ................ ................ ................ ................ ................ ................`),
-  bush: pack(`
-.g.g.g.gg.g.g.g. gggggggggggggggg .ggdggggggdggg. gggggggggggggg. gdggggcggggggg. gggggggggggggg. ggggygggrggggg. .ggggggggggggg. gggggggggggggg. .ggdggggggdggg. ................ ................ ................ ................ ................ ................`),
+................ ................ ....g.yy.g...... ...gg....gg..... ...g.g..g.g..... ..gg..rr..gg.... ..g..ccccc.g.... .....ccrcc...... ......ccc....... ................ ................ ................ ................ ................ ................ ................`),
+  homeCroc: pack(`
+................ ................ ..........ee.... ........eee..... .......ee.ee.... .....eeee..e.... ....eeeeeeee.... ...eeee..eee.... ..eee.....ee.... .ee.........e... ................ ................ ................ ................ ................ ................`),
   splat: pack(`
 ......g.......g. .g...ggg...g.... ..g.g...g.g..... ...g.g.g.g...... g...ggggg...g... ..g.ggggg.g..... ...gg...gg...... .g..g.g.g..g.... ....g...g....... .g.........g.... ................ ................ ................ ................ ................ ................`),
   splash: pack(`
 ......c......c.. .c...ccc...c.... ..c.c...c.c..... c...ccccc...c... ..c.ccccc.c..... ...cc...cc...... .c..c.c.c..c.... ....c...c....... .c.........c.... ................ ................ ................ ................ ................ ................ ................`)
+
 };
 
 function blit(spr, x, y, flipX, flipY) {
@@ -337,11 +347,11 @@ function tier(level) {
   const t = ((level - 1) % 5);
   /* Object counts from MAME RAM lane dumps, levels 1-5. */
   const tables = [
-    { road: [[2,32],[1,16],[3,16],[3,16],[3,16]], river: [[3,"mid"],[4,"turt",1],[2,"long"],[3,"short"],[4,"turt",1]], swimCroc: 0, snake: 0, otter: 0, homeCroc: 0, lady: 0 },
-    { road: [[3,32],[2,16],[4,16],[4,16],[4,16]], river: [[3,"mid"],[5,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
-    { road: [[3,32],[2,16],[5,16],[4,16],[4,16]], river: [[2,"mid"],[4,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
-    { road: [[4,32],[3,16],[4,16],[4,16],[4,16]], river: [[2,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 },
-    { road: [[3,32],[4,16],[5,16],[4,16],[5,16]], river: [[1,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[2,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 }
+    { road: [[2,27],[1,16],[3,16],[3,16],[3,16]], river: [[3,"mid"],[4,"turt",1],[2,"long"],[3,"short"],[4,"turt",1]], swimCroc: 0, snake: 0, otter: 0, homeCroc: 0, lady: 0 },
+    { road: [[3,27],[2,16],[4,16],[4,16],[4,16]], river: [[3,"mid"],[5,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
+    { road: [[3,27],[2,16],[5,16],[4,16],[4,16]], river: [[2,"mid"],[4,"turt",1],[1,"long"],[3,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 0, homeCroc: 1, lady: 1 },
+    { road: [[4,27],[3,16],[4,16],[4,16],[4,16]], river: [[2,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[3,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 },
+    { road: [[3,27],[4,16],[5,16],[4,16],[5,16]], river: [[1,"mid"],[3,"turt",1],[1,"long"],[2,"short"],[2,"turt",1]], swimCroc: 1, snake: 1, otter: 1, homeCroc: 1, lady: 1 }
   ];
   return tables[t];
 }
@@ -465,10 +475,10 @@ function makeLaneObjects() {
   snakes = [];
   otters = [];
   if (cfg.snake) {
-    snakes.push({ x: 8, y: Y_MED + 3, w: 32, h: 10, vx: 0.5 + level * 0.04, dir: 1 });
+    snakes.push({ x: 8, y: Y_MED, w: 32, h: 12, vx: 0.5 + level * 0.04, dir: 1 });
   }
   if (cfg.otter) {
-    otters.push({ x: -24, y: Y_RIV[2], w: 20, h: 12, vx: 0.85, t: 0 });
+    otters.push({ x: -24, y: Y_RIV[2], w: 16, h: 12, vx: 0.85, t: 0 });
   }
 }
 
@@ -591,7 +601,7 @@ function finishHop() {
   if (inHomeRow(frog.y)) {
     const cx = frog.x + 8;
     let bay = -1;
-    for (let i = 0; i < 5; i++) if (cx >= BAY_X[i] && cx < BAY_X[i] + 16) bay = i;
+    for (let i = 0; i < 5; i++) if (cx >= BAY_X[i] && cx < BAY_X[i] + BAY_W) bay = i;
     if (bay < 0 || homes[bay] === 1) { die("bush"); return; }
     if (homes[bay] === 3) { die("croc"); return; }
     let bonus = 50 + timeLeft * 10;
@@ -893,37 +903,46 @@ function drawBackground() {
   }
   bank(Y_MED);
   bank(Y_WALK);
-  /* 24 px hedge (MAME y=24-47) with a navy strip under the score, then five bay cutouts */
-  const bushC = COL.bush || COL.grn, darkB = COL.dgr;
-  for (let y = 0; y < 24; y++) {
+  /* Textured green hedge (y=24-46) with orange stipple and dark notched bays. */
+  const bushC = COL.bush, dirtC = COL.dirt;
+  /* Hand-designed 8x8 stipple in the arcade colors, not a pixel copy of the tiles. */
+  const stipple = [
+    0b10000100,
+    0b00010001,
+    0b01000010,
+    0b00001000,
+    0b10010000,
+    0b00100010,
+    0b01000100,
+    0b00010001
+  ];
+  for (let y = Y_BUSH; y <= 46; y++) {
     for (let x = 0; x < W; x++) {
-      const yy = Y_BUSH + y;
-      const jig = ((x * 13 + y * 7) ^ (x >> 1)) & 7;
-      const scallop = ((x + 3) % 8) < 2 && y < 2;
-      let col = jig === 0 || jig === 3 ? darkB : bushC;
-      if (y === 0 && !scallop) col = bushC;
-      if (scallop && y === 0) continue; /* leave navy in the notches */
-      if (y === 23) col = darkB;
-      pset(x, yy, col);
+      const bit = (stipple[(y - Y_BUSH) & 7] >> (x & 7)) & 1;
+      pset(x, y, bit ? dirtC : bushC);
     }
   }
-  const fl = [[6,6,COL.cyn],[18,11,COL.yel],[46,7,COL.red],[86,10,COL.pnk],[126,6,COL.yel],[166,12,COL.cyn],[206,7,COL.red],[36,15,COL.pnk],[156,16,COL.yel],[70,18,COL.cyn],[188,14,COL.yel]];
-  for (const f of fl) pset(f[0], Y_BUSH + f[1], f[2]);
+  /* Five 20 px U-notches; navy shows through, with an orange lip. */
   for (let i = 0; i < 5; i++) {
-    const x = BAY_X[i];
-    fillR(x, Y_BUSH + 8, 16, 16, COL.k);
-    fillR(x, Y_BUSH + 6, 16, 3, darkB); /* lip over the bay */
-    /* rounded inner corners */
-    pset(x, Y_BUSH + 9, darkB); pset(x + 15, Y_BUSH + 9, darkB);
-    const st = homes[i];
-    if (st === 1) blit(SPR.homeFrog, x, Y_LAND);
-    else if (st === 2) blit(SPR.fly, x + 4, Y_LAND + 4);
-    else if (st === 3) {
-      fillR(x + 1, Y_LAND + 4, 14, 8, COL.grn);
-      fillR(x + 10, Y_LAND + 5, 5, 4, COL.yel);
-      fillR(x + 2, Y_LAND + 10, 8, 2, COL.dgr);
+    const x0 = BAY_X[i], x1 = x0 + BAY_W - 1;
+    for (let y = 31; y <= 46; y++) {
+      for (let x = x0; x <= x1; x++) {
+        if (x === x0 || x === x1 || y === 31) pset(x, y, dirtC);
+        else pset(x, y, COL.navy);
+      }
     }
+    pset(x0, 31, bushC); pset(x1, 31, bushC);
+    pset(x0 + 1, 31, dirtC); pset(x1 - 1, 31, dirtC);
+    pset(x0, 32, dirtC); pset(x1, 32, dirtC);
+    for (let x = x0; x <= x1; x++) pset(x, 46, dirtC);
+    if (x0 > 0) pset(x0 - 1, 46, dirtC);
+    if (x1 < W - 1) pset(x1 + 1, 46, dirtC);
+    const st = homes[i];
+    if (st === 1) blit(SPR.homeFrog, x0 + 2, Y_BUSH + 6);
+    else if (st === 2) blit(SPR.fly, x0 + 6, Y_LAND + 4);
+    else if (st === 3) blit(SPR.homeCroc, x0 + 2, Y_BUSH + 8);
   }
+
 }
 
 function drawObjects() {
@@ -944,21 +963,22 @@ function drawObjects() {
       fillR(lx + lw - 2, ly + 3, 2, lh - 6, body);
     } else if (o.typ === "turt") {
       const phase = o.dive < 0 ? 0 : o.dive;
-      const red = o.color === "red";
-      let spr = red ? SPR.turtR : SPR.turt;
-      if (phase > 140 && phase < 200) spr = red ? SPR.turtRDive : SPR.turtDive;
-      if (phase >= 160 && phase <= 210) spr = red ? SPR.turtRDown : SPR.turtDown;
+      let spr = SPR.turt;
+      if (phase > 140 && phase < 200) spr = SPR.turtDive;
+      if (phase >= 160 && phase <= 210) spr = SPR.turtDown;
       const flip = o.vx < 0;
       const hidden = phase >= 175 && phase <= 205;
       if (!hidden) {
         blit(spr, o.x | 0, o.y, flip);
         blit(spr, (o.x | 0) + 16, o.y, flip);
         blit(spr, (o.x | 0) + 32, o.y, flip);
+      } else {
+        pset((o.x | 0) + 6, o.y + 8, COL.veh);
+        pset((o.x | 0) + 22, o.y + 7, COL.veh);
+        pset((o.x | 0) + 38, o.y + 8, COL.veh);
       }
     } else if (o.typ === "croc") {
-      blit(SPR.croc, o.x | 0, o.y + 1, o.vx < 0);
-      if (o.vx < 0) blit(SPR.crocJaw, o.x | 0, o.y + 1, true);
-      else blit(SPR.crocJaw, (o.x | 0) + 24, o.y + 1, false);
+      blit(SPR.croc, o.x | 0, o.y, o.vx < 0);
     }
   }
   for (const s of snakes) blit(SPR.snake, s.x | 0, s.y, s.dir < 0);
