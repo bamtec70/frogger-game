@@ -1032,8 +1032,8 @@ function fit() {
   const vh = (window.visualViewport && window.visualViewport.height) || window.innerHeight;
   let aw = vw - 8, ah = vh - 44;
   if (touch) { if (land) aw = vw - 2 * 150; else ah = vh - 40 - 190; }
-  const s = Math.max(1, Math.floor(Math.min(aw / W, ah / H)));
-  const cw = s * W, ch = s * H;
+  const s = Math.max(1, Math.min(aw / W, ah / H));
+  const cw = Math.floor(s * W), ch = Math.floor(s * H);
   const dpr = Math.min(2, window.devicePixelRatio || 1);
   view.style.width = cw + "px"; view.style.height = ch + "px";
   view.width = Math.round(cw * dpr); view.height = Math.round(ch * dpr);
