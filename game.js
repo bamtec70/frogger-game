@@ -25,6 +25,9 @@ const Y_SCORE = 0, Y_HOME = 16, Y_BUSH = 24, Y_LAND = 32;
 const Y_RIV = [48, 64, 80, 96, 112], Y_MED = 128;
 const Y_ROAD = [144, 160, 176, 192, 208], Y_WALK = 224, Y_STAT = 240;
 const BAY_X = [6, 54, 102, 150, 198], BAY_W = 20; /* 20 px notched bays, 48 px centers, measured from MAME */
+/* River objects wrap on a 256 px period (W+32), matching MAME group spacing:
+   4 turtle packs every 64 px with 16 px water gaps; 2 long logs every 128 px. */
+const RIVER_PERIOD = 256;
 
 function cls(c) { fb.fill(c); }
 function pset(x, y, c) { if (x >= 0 && x < W && y >= 0 && y < H) fb[y * W + x] = c; }
@@ -314,10 +317,12 @@ addEventListener("keyup", e => {
 const pad = document.getElementById("pad");
 pad.querySelectorAll(".dpad-btn[data-dir]").forEach(btn => {
   const d = btn.getAttribute("data-dir");
-  const down = ev => { ev.preventDefault(); onAny(); padDir = d; btn.classList.add("active"); try { btn.setPointerCapture(ev.pointerId); } catch (_) {} };
-  const up = () => { if (padDir === d) padDir = null; btn.classList.remove("active"); };
+  const down = ev => { ev.preventDefault(); onAny(); padDir = d; btn.classList.add("active"); try { if (ev.pointerId != null) btn.setPointerCapture(ev.pointerId); } catch (_) {} };
+  const up = ev => { if (ev) ev.preventDefault(); if (padDir === d) padDir = null; btn.classList.remove("active"); };
   btn.addEventListener("pointerdown", down);
   ["pointerup", "pointercancel", "lostpointercapture"].forEach(t => btn.addEventListener(t, up));
+  btn.addEventListener("touchstart", down, { passive: false });
+  ["touchend", "touchcancel"].forEach(t => btn.addEventListener(t, up, { passive: false }));
 });
 function bindAct(id, flag) {
   const el = document.getElementById(id);
@@ -329,16 +334,28 @@ bindAct("btn-coin", "coin");
 view.addEventListener("pointerdown", () => onAny());
 
 let startEdge = false, coinEdge = false, prevStart = false, prevCoin = false;
-function pollEdges() {
-  startEdge = startHeld && !prevStart; prevStart = startHeld;
-  coinEdge = coinHeld && !prevCoin; prevCoin = coinHeld;
-}
-function hopWanted() {
+let dirHeld = false;
+function currentDir() {
   if (keys.U || padDir === "U") return "U";
   if (keys.D || padDir === "D") return "D";
   if (keys.L || padDir === "L") return "L";
   if (keys.R || padDir === "R") return "R";
   return null;
+}
+function pollEdges() {
+  startEdge = startHeld && !prevStart; prevStart = startHeld;
+  coinEdge = coinHeld && !prevCoin; prevCoin = coinHeld;
+  const dir = currentDir();
+  if (!dir) dirHeld = false;
+}
+function hopWanted() {
+  /* Arcade stick: one discrete hop per press. Must release to hop again.
+     A held dpad otherwise auto-hops off a safe turtle into open water. */
+  const dir = currentDir();
+  if (!dir) { dirHeld = false; return null; }
+  if (dirHeld) return null;
+  dirHeld = true;
+  return dir;
 }
 
 /* ---------- level data ---------- */
@@ -405,7 +422,7 @@ let state = "attract", attractMode = "rank", attractT = 0, frame = 0;
 let credits = 0, score = 0, lives = LIVES0, level = 1, extraAwarded = false;
 let timeLeft = TIME_TICKS, tickAcc = 0, timeFrozen = 0;
 let homes = [0, 0, 0, 0, 0]; /* 0 empty, 1 frog, 2 fly, 3 croc */
-let frog, hop, lady, flyT = 0, objects = [], snakes = [], otters = [];
+let frog, hop, lady, flyT = 0, crocT = 0, objects = [], snakes = [], otters = [];
 let deathT = 0, deathKind = "road", clearT = 0, homeFlash = 0;
 let entry = null, demo = false, racerBoost = false, warnAcc = 0;
 let maxFwd = 0; /* highest row reached this life, for hop scoring */
@@ -420,6 +437,7 @@ function addScore(n) {
 function resetFrog() {
   frog = { x: (W - 16) >> 1, y: Y_WALK, face: "U", alive: true, onPlat: null, lady: false };
   hop = null;
+  dirHeld = false;
   maxFwd = Y_WALK;
   timeLeft = TIME_TICKS;
   tickAcc = 0;
@@ -428,11 +446,23 @@ function resetFrog() {
   lady = null;
 }
 
-function wrapX(x, span) {
-  const period = W + span;
-  x = (x + span) % period;
-  if (x < 0) x += period;
-  return x - span;
+function wrapX(x, span, period) {
+  const p = period || (W + span);
+  x %= p;
+  if (x < 0) x += p;
+  return x;
+}
+/* Visible X copies of a wrapping river object (period 256, so a log can
+   sit on both edges at once). Cars have no period and are drawn once. */
+function wrapCopies(x, period) {
+  if (!period) return [x];
+  return [x, x - period, x + period];
+}
+function overlapX(fx0, fx1, ox, ow, period) {
+  for (const s of wrapCopies(ox, period)) {
+    if (!(fx1 <= s || fx0 >= s + ow)) return s;
+  }
+  return null;
 }
 
 function makeLaneObjects() {
@@ -456,20 +486,23 @@ function makeLaneObjects() {
     const dir = sp.dirRiv[i];
     const spd = sp.river[i] * dir;
     const y = Y_RIV[i];
-    const widthFor = kind === "turt" ? 48 : kind === "short" ? 32 : kind === "long" ? 64 : 48;
+    /* Tile widths from MAME: short 6*8, mid 8*8, long 12*8, turtle pack 6*8.
+       Visible bodies measure ~6 px tighter because of rounded caps; collision
+       uses the full tile so the frog can stand on those caps, as in the arcade. */
+    const widthFor = kind === "turt" ? 48 : kind === "short" ? 48 : kind === "long" ? 96 : 64;
     const count = Math.max(n, 0);
-    const gap = (W + 60) / Math.max(count, 1);
+    const gap = RIVER_PERIOD / Math.max(count, 1);
     for (let k = 0; k < count; k++) {
       if (kind === "turt") {
         const diving = !!dive && (k === count - 1 || (count > 3 && k === 0));
         const color = (i === 1) ? "red" : "grn"; /* top turtle row is red, bottom is green */
-        objects.push({ typ: "turt", x: k * gap - 10, y, w: 48, h: 16, vx: spd, dive: diving ? (k * 40) % 240 : -1, lane: "riv" + i, laneI: i, n: 3, color });
+        objects.push({ typ: "turt", x: k * gap, y, w: 48, h: 16, vx: spd, dive: diving ? (k * 40) % 240 : -1, lane: "riv" + i, laneI: i, n: 3, color, period: RIVER_PERIOD });
       } else {
-        objects.push({ typ: "log", x: k * gap - 10, y, w: widthFor, h: 16, vx: spd, lane: "riv" + i, laneI: i });
+        objects.push({ typ: "log", x: k * gap, y, w: widthFor, h: 16, vx: spd, lane: "riv" + i, laneI: i, period: RIVER_PERIOD });
       }
     }
     if (i === 0 && cfg.swimCroc) {
-      objects.push({ typ: "croc", x: W * 0.6, y, w: 48, h: 16, vx: spd, jaw: true, lane: "riv" + i, laneI: i });
+      objects.push({ typ: "croc", x: W * 0.6, y, w: 48, h: 16, vx: spd, jaw: true, lane: "riv" + i, laneI: i, period: RIVER_PERIOD });
     }
   }
   snakes = [];
@@ -492,10 +525,15 @@ function startLevel(newBoard) {
 }
 
 function maybeHomeCroc() {
+  if (!tier(level).homeCroc) return;
   const empty = [];
   homes.forEach((h, i) => { if (h === 0) empty.push(i); });
-  if (!empty.length) return;
-  if (((frame + level * 13) % 3) === 0) homes[empty[frame % empty.length]] = 3;
+  /* Leave at least one open bay, and only on levels that use a home croc. */
+  if (empty.length <= 1) return;
+  if (((frame + level * 13) % 3) === 0) {
+    homes[empty[frame % empty.length]] = 3;
+    crocT = 180 + (frame % 90);
+  }
 }
 
 function maybeFly() {
@@ -523,18 +561,18 @@ function startGame(isDemo) {
 
 /* ---------- movement / collisions ---------- */
 function platformAt(x, y) {
-  /* frog 16x16, test overlap with river objects at this y band */
+  /* frog 16x16 cell, centered 10 px hitbox (x+3..x+13), mid-row sample at y+8 */
   const fx0 = x + 3, fx1 = x + 13, fy = y + 8;
   let found = null;
   for (const o of objects) {
     if (o.lane && o.lane.slice(0, 3) !== "riv") continue;
     if (fy < o.y || fy >= o.y + 16) continue;
-    const ox0 = o.x, ox1 = o.x + o.w;
-    if (fx1 <= ox0 || fx0 >= ox1) continue;
+    const seg = overlapX(fx0, fx1, o.x, o.w, o.period);
+    if (seg === null) continue;
     if (o.typ === "turt" && o.dive >= 160 && o.dive <= 210) continue; /* fully submerged */
     if (o.typ === "croc") {
-      /* mouth is the leading 10 px in the direction of travel */
-      const mouth0 = o.vx > 0 ? o.x + o.w - 12 : o.x;
+      /* mouth is the leading 12 px in the direction of travel, on the overlapping copy */
+      const mouth0 = o.vx > 0 ? seg + o.w - 12 : seg;
       const mouth1 = mouth0 + 12;
       if (fx1 > mouth0 && fx0 < mouth1) return { kill: "croc", o };
     }
@@ -672,7 +710,7 @@ function applyLaneSpeed(o) {
 function stepObjects() {
   for (const o of objects) {
     applyLaneSpeed(o);
-    o.x = wrapX(o.x + o.vx, o.w);
+    o.x = wrapX(o.x + o.vx, o.w, o.period);
     if (o.typ === "turt" && o.dive >= 0) {
       o.dive = (o.dive + 1) % 256;
     }
@@ -855,6 +893,8 @@ function playTick(isDemoTick) {
     if (flyT <= 0) { maybeFly(); flyT = 240; }
     /* fly expires */
     if (homes.includes(2) && flyT === 40) homes = homes.map(h => h === 2 ? 0 : h);
+    if (crocT > 0) crocT--;
+    if (homes.includes(3) && crocT <= 0) homes = homes.map(h => h === 3 ? 0 : h);
   }
   /* start jingle hands off to main theme */
   if (musicOn && song === SONGS.start && songI[0] >= (SONGS.start[0].length)) playSong("main");
@@ -945,40 +985,47 @@ function drawBackground() {
 
 }
 
+function drawLogBody(lx, ly, lw) {
+  const lh = 10;
+  const body = COL.log || COL.brn, hi = COL.logHi || rgb("#e08a62"), ring = rgb("#7a2c1c");
+  fillR(lx + 2, ly, lw - 4, lh, body);
+  fillR(lx, ly + 2, lw, lh - 4, body);
+  fillR(lx + 3, ly + 1, lw - 6, 2, hi);
+  for (let rx = lx + 6; rx < lx + lw - 4; rx += 8) fillR(rx, ly, 2, lh, ring);
+  fillR(lx, ly + 3, 2, lh - 6, body);
+  fillR(lx + lw - 2, ly + 3, 2, lh - 6, body);
+}
 function drawObjects() {
   for (const o of objects) {
     if (o.typ === "car") {
       const spr = SPR[o.kind] || SPR.carY;
       blit(spr, o.x | 0, o.y, o.vx < 0);
-    } else if (o.typ === "log") {
-      const lx = o.x | 0, ly = o.y + 3, lw = o.w, lh = 10;
-      const body = COL.log || COL.brn, hi = COL.logHi || rgb("#e08a62"), ring = rgb("#7a2c1c");
-      fillR(lx + 2, ly, lw - 4, lh, body);
-      fillR(lx, ly + 2, lw, lh - 4, body);
-      fillR(lx + 3, ly + 1, lw - 6, 2, hi);
-      /* dark ring bands every 8 px, like the arcade logs */
-      for (let rx = lx + 6; rx < lx + lw - 4; rx += 8) fillR(rx, ly, 2, lh, ring);
-      /* rounded caps */
-      fillR(lx, ly + 3, 2, lh - 6, body);
-      fillR(lx + lw - 2, ly + 3, 2, lh - 6, body);
-    } else if (o.typ === "turt") {
-      const phase = o.dive < 0 ? 0 : o.dive;
-      let spr = SPR.turt;
-      if (phase > 140 && phase < 200) spr = SPR.turtDive;
-      if (phase >= 160 && phase <= 210) spr = SPR.turtDown;
-      const flip = o.vx < 0;
-      const hidden = phase >= 175 && phase <= 205;
-      if (!hidden) {
-        blit(spr, o.x | 0, o.y, flip);
-        blit(spr, (o.x | 0) + 16, o.y, flip);
-        blit(spr, (o.x | 0) + 32, o.y, flip);
-      } else {
-        pset((o.x | 0) + 6, o.y + 8, COL.veh);
-        pset((o.x | 0) + 22, o.y + 7, COL.veh);
-        pset((o.x | 0) + 38, o.y + 8, COL.veh);
+      continue;
+    }
+    for (const sx of wrapCopies(o.x, o.period)) {
+      if (sx + o.w < -16 || sx > W + 16) continue;
+      if (o.typ === "log") {
+        drawLogBody(sx | 0, o.y + 3, o.w);
+      } else if (o.typ === "turt") {
+        const phase = o.dive < 0 ? 0 : o.dive;
+        let spr = SPR.turt;
+        if (phase > 140 && phase < 200) spr = SPR.turtDive;
+        if (phase >= 160 && phase <= 210) spr = SPR.turtDown;
+        const flip = o.vx < 0;
+        const hidden = phase >= 175 && phase <= 205;
+        const ix = sx | 0;
+        if (!hidden) {
+          blit(spr, ix, o.y, flip);
+          blit(spr, ix + 16, o.y, flip);
+          blit(spr, ix + 32, o.y, flip);
+        } else {
+          pset(ix + 6, o.y + 8, COL.veh);
+          pset(ix + 22, o.y + 7, COL.veh);
+          pset(ix + 38, o.y + 8, COL.veh);
+        }
+      } else if (o.typ === "croc") {
+        blit(SPR.croc, sx | 0, o.y, o.vx < 0);
       }
-    } else if (o.typ === "croc") {
-      blit(SPR.croc, o.x | 0, o.y, o.vx < 0);
     }
   }
   for (const s of snakes) blit(SPR.snake, s.x | 0, s.y, s.dir < 0);
@@ -1148,16 +1195,24 @@ if (window.visualViewport) visualViewport.addEventListener("resize", fit);
 fit();
 
 window.__frog = {
-  get state() { return { state, score, lives, level, timeLeft, homes: homes.slice(), credits, demo, frame, racerBoost, frog: frog && { x: frog.x, y: frog.y } }; },
+  get state() { return { state, score, lives, level, timeLeft, homes: homes.slice(), credits, demo, frame, racerBoost, frog: frog && { x: frog.x, y: frog.y, alive: frog.alive, onPlat: frog.onPlat && { typ: frog.onPlat.typ, x: frog.onPlat.x, y: frog.onPlat.y, w: frog.onPlat.w, vx: frog.onPlat.vx, dive: frog.onPlat.dive }, lady: frog.lady } }; },
   start: () => startGame(false),
   demo: () => startGame(true),
   setLevel: n => { level = n; startLevel(true); state = "play"; demo = false; },
-  park: y => { if (frog) { frog.y = y; frog.x = 104; hop = null; } },
+  park: (y, x) => { if (frog) { frog.y = y; frog.x = (x == null ? 104 : x); hop = null; frog.alive = true; frog.onPlat = null; } },
   setHomes: arr => { homes = arr.slice(); },
   boost: v => { racerBoost = !!v; },
   hop: d => beginHop(d),
   showAttract: m => { state = "attract"; attractMode = m || "table"; demo = false; },
-  canvas: off
+  canvas: off,
+  thaw: () => { timeFrozen = 0; },
+  objects: () => objects.map(o => ({ typ: o.typ, kind: o.kind, x: o.x, y: o.y, w: o.w, h: o.h, vx: o.vx, lane: o.lane, dive: o.dive, n: o.n, period: o.period })),
+  snakes: () => snakes.map(s => ({ x: s.x, y: s.y, w: s.w, h: s.h, vx: s.vx * s.dir })),
+  otters: () => otters.map(o => ({ x: o.x, y: o.y, w: o.w, h: o.h, vx: o.vx })),
+  platformAt: (x, y) => { const p = platformAt(x, y); return p && { kill: p.kill || null, typ: p.o && p.o.typ, x: p.o && p.o.x, y: p.o && p.o.y, w: p.o && p.o.w, vx: p.o && p.o.vx, dive: p.o && p.o.dive }; },
+  Y: { Y_SCORE, Y_HOME, Y_BUSH, Y_LAND, Y_RIV, Y_MED, Y_ROAD, Y_WALK, Y_STAT, BAY_X, BAY_W, W, H, HOP_FRAMES, HOP_PX, RIVER_PERIOD },
+  setTime: n => { timeLeft = n; tickAcc = 0; },
+  revive: () => { if (frog) { frog.alive = true; state = "play"; deathT = 0; } }
 };
 
 /* ---------- loop ---------- */
