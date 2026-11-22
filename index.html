@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1, user-scalable=no" />
+<meta name="theme-color" content="#000000" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns=%27http://www.w3.org/2000/svg%27 viewBox=%270 0 8 8%27%3E%3Crect width=%278%27 height=%278%27 fill=%27000%27/%3E%3Cpath d=%27M2 2h1v1h2V2h1v1H5v1H3V3H2z%27 fill=%27%2368f700%27/%3E%3Crect x=%271%27 y=%274%27 width=%276%27 height=%273%27 fill=%27%2368f700%27/%3E%3C/svg%3E" />
+<title>FROGGER - Arcade Remake</title>
+<link rel="stylesheet" href="style.css?v=2" />
+</head>
+<body>
+<div id="game-wrapper">
+  <div id="topbar">
+    <a id="back-link" href="https://wethepeoplepress.com/games/">&larr; WTP ARCADE</a>
+    <button type="button" id="btn-mute" class="mini-btn" aria-label="Mute">SOUND ON</button>
+  </div>
+  <canvas id="game" width="224" height="256" aria-label="Frogger game"></canvas>
+  <div id="help">ARROWS / WASD - HOP &middot; 5 - COIN &middot; 1 / ENTER / SPACE - START &middot; M - SOUND &middot; ARCADE REMAKE</div>
+  <div id="pad" aria-label="Direction pad">
+    <button type="button" class="dpad-btn" data-dir="U" aria-label="Up">&#9650;</button>
+    <button type="button" class="dpad-btn" data-dir="L" aria-label="Left">&#9664;</button>
+    <button type="button" class="dpad-btn dpad-center" disabled aria-hidden="true"></button>
+    <button type="button" class="dpad-btn" data-dir="R" aria-label="Right">&#9654;</button>
+    <button type="button" class="dpad-btn" data-dir="D" aria-label="Down">&#9660;</button>
+  </div>
+  <div id="actions">
+    <button type="button" id="btn-coin" class="act-btn" aria-label="Coin">COIN</button>
+    <button type="button" id="btn-start" class="act-btn start" aria-label="Start">START</button>
+  </div>
+  <div id="rotate-hint">ROTATE FOR BEST PLAY &#8635;</div>
+</div>
+<script src="font.js?v=2"></script>
+<script src="game.js?v=2"></script>
+<script>(function(){var t;function f(){clearTimeout(t);t=setTimeout(function(){document.documentElement.style.height=window.innerHeight+"px";window.dispatchEvent(new Event("resize"));},60);}window.addEventListener("orientationchange",function(){f();setTimeout(f,350);setTimeout(f,800);});if(window.visualViewport)visualViewport.addEventListener("resize",f);if(screen.orientation&&screen.orientation.addEventListener)screen.orientation.addEventListener("change",f);})();</script>
+</body>
+</html>
